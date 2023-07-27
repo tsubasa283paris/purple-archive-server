@@ -1,0 +1,18 @@
+[tool.poetry]
+name = "purple-archive-server"
+version = "0.1.0"
+description = ""
+authors = ["tsubasa283paris <tsubasa283paris@gmail.com>"]
+readme = "README.md"
+packages = [{include = "purple_archive_server"}]
+
+[tool.poetry.dependencies]
+python = "^3.8"
+django = "^4.2.3"
+djangorestframework = "^3.14.0"
+django-filter = "^23.2"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
