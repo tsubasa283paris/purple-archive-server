@@ -18,4 +18,12 @@
 
 1. 当リポジトリにおいて `poetry install` を実施する。  
 
+1. 仮想環境を起動する。  
+   ```bash
+   source .venv/bin/activate
+   ```
 
+1. サーバを起動する。  
+   ```bash
+   python manage.py runserver
+   ```
