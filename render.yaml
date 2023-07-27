@@ -2,6 +2,8 @@ databases:
   - name: purple_archive_db
     databaseName: purple_archive_db
     user: purple_archive_db
+    region: singapore
+    plan: free
 
 services:
   - type: web
