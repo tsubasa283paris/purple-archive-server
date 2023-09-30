@@ -83,7 +83,10 @@ WSGI_APPLICATION = 'purple_archive_server.wsgi.application'
 
 DATABASES = {
     'default': dj_database_url.config(
-        default='postgresql://postgres:postgres@localhost:5432/purple_archive_db',
+        default=os.environ.get(
+            'DATABASE_URL',
+            default='postgresql://postgres:postgres@localhost:5432/purple_archive_db'
+        ),
         conn_max_age=600
     )
 }
