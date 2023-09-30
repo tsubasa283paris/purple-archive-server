@@ -6,13 +6,14 @@ databases:
     plan: free
 
 services:
+  # A Docker web service
   - type: web
     name: purple_archive_server
     runtime: python
     region: singapore
     plan: free
     buildCommand: "./build.sh"
-    startCommand: "gunicorn purple_archive_server.wsgi:application"
+    startCommand: uvicorn main:app --host 0.0.0.0 --port $PORT
     envVars:
       - key: PYTHON_VERSION
         value: 3.8.10
@@ -22,7 +23,3 @@ services:
         fromDatabase:
           name: purple_archive_db
           property: connectionString
-      - key: SECRET_KEY
-        generateValue: true
-      - key: WEB_CONCURRENCY
-        value: 4
