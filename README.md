@@ -12,6 +12,11 @@
    sudo apt install postgresql postgresql-contrib
    ```
 
+1. Pythonパッケージのインストールに必要ないくつかのパッケージをインストールする。  
+   ```bash
+   sudo apt install python3-dev libpq-dev
+   ```
+
 1. Poetryをインストールする。  
    <https://python-poetry.org/docs/>
 
@@ -23,20 +28,6 @@
    ```
 
 1. 当リポジトリにおいて `poetry install` を実施する。  
-
-1. Djangoを操作するためのスーパーユーザを作成する。  
-   ```bash
-   python manage.py createsuperuser
-   ```
-
-   ローカル環境でのデバッグに用いるだけなので、名前やパスワードは簡易なものでよい。
-
-1. 次項「マイグレーション」を実施する。
-
-## マイグレーション
-
-以下は初回環境構築時の手順。  
-DB定義変更時のマイグレーションの場合はデータベース作成の手順を飛ばす。
 
 1. PostgreSQLサーバを起動する。  
    ```bash
@@ -52,16 +43,35 @@ DB定義変更時のマイグレーションの場合はデータベース作成
    CREATE DATABASE purple_archive_db;
    ```
 
-1. 仮想環境を起動する。  
-   ```bash
-   source .venv/bin/activate
-   ```
+1. 次項「マイグレーション（同期）」を実施する。
 
-1. 以下のコマンドを実行し、マイグレーションを実施する。  
-   ```bash
-   python manage.py makemigrations
-   python manage.py migrate
-   ```
+以下、「仮想環境内で実施する」と表現した場合は下記のコマンドによってpoetryの作成した仮想環境を起動して実施することを指す。  
+（同仮想環境内で `deactivate` とだけ実行すると仮想環境を終了する。）  
+```bash
+source .venv/bin/activate
+```
+
+## マイグレーション（同期）
+
+当リポジトリの `alembic/versions` ディレクトリに保存されているマイグレーションバージョン（以下リビジョン）をすべて適用する。  
+
+仮想環境内で実施する。  
+```bash
+alembic upgrade head
+```
+
+なお、`alembic downgrade` など特定のリビジョンに巻き戻すことも可能である。  
+詳細は <https://alembic.sqlalchemy.org/en/latest/tutorial.html#running-our-first-migration> を参照。
+
+## マイグレーション（作成）
+
+当リポジトリの `sql_interface/models.py` に行った変更をリビジョンとして保存する。  
+即座にローカルデータベースに反映する場合は「マイグレーション（同期）」を実施する。  
+
+仮想環境内で実施する。  
+```bash
+alembic revision --autogenerate -m "<リビジョンメッセージ>"
+```
 
 ## 起動（デバッグ）
 
@@ -77,5 +87,5 @@ DB定義変更時のマイグレーションの場合はデータベース作成
 
 1. サーバを起動する。  
    ```bash
-   python manage.py runserver
+   uvicorn main:app --reload
    ```
