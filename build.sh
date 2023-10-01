@@ -2,6 +2,6 @@
 # exit on error
 set -o errexit
 
-poetry install
+poetry install --no-root
 
 alembic upgrade head
