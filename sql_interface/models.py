@@ -16,7 +16,7 @@ class TimestampMixin(object):
     @declared_attr
     def created_at(cls):
         return Column(
-            DateTime,
+            DateTime(True),
             default=datetime.datetime.now(),
             nullable=False
         )
@@ -24,7 +24,7 @@ class TimestampMixin(object):
     @declared_attr
     def updated_at(cls):
         return Column(
-            DateTime,
+            DateTime(True),
             default=datetime.datetime.now(),
             onupdate=datetime.datetime.now(),
             nullable=False
@@ -91,7 +91,7 @@ class User(Base, TimestampMixin):
     )
 
     deleted_at = Column(
-        DateTime,
+        DateTime(True),
         default=None,
         nullable=True,
     )
@@ -142,12 +142,12 @@ class Album(Base, TimestampMixin):
     )
 
     played_at = Column(
-        DateTime,
+        DateTime(True),
         nullable=True,
     )
 
     deleted_at = Column(
-        DateTime,
+        DateTime(True),
         default=None,
         nullable=True,
     )
@@ -252,7 +252,7 @@ class TempAlbum(Base, TimestampMixin):
     )
 
     deleted_at = Column(
-        DateTime,
+        DateTime(True),
         default=None,
         nullable=True,
     )
