@@ -41,11 +41,11 @@ async def get_token(
         )
     
     return {
-        "access_token": encode_access_token(
+        "accessToken": encode_access_token(
             user.id,
             datetime.timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         ),
-        "token_type": "bearer",
+        "tokenType": "bearer",
     }
 
 
