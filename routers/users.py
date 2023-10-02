@@ -11,7 +11,7 @@ from sql_interface.database import get_db
 router = APIRouter()
 
 
-@router.get("/users/", response_model=List[schemas.UserRead])
+@router.get("/users", response_model=List[schemas.UserRead])
 def read_users(
     user_info: UserInfo,
     offset: int = 0, limit: int = 100,
@@ -40,7 +40,7 @@ def read_user(
     return db_user
 
 
-@router.post("/users/", response_model=schemas.UserRead)
+@router.post("/users", response_model=schemas.UserRead)
 def create_user(
     user_info: UserInfo,
     user: schemas.UserWrite,
