@@ -26,7 +26,7 @@ class UserBase(BaseModel):
 
 
 class UserRead(UserBase, CommonRead):
-    deleted_at: Union[datetime.datetime, None]
+    pass
 
 
 class UserReadDeep(UserRead):

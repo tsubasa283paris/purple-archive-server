@@ -14,6 +14,7 @@ def get_user(db: Session, id: str, password: Union[str, None] = None):
         return db.query(models.User) \
             .filter(
                 models.User.id == id,
+                models.User.deleted_at == None
             ) \
             .first()
     else:
@@ -21,12 +22,14 @@ def get_user(db: Session, id: str, password: Union[str, None] = None):
             .filter(
                 models.User.id == id,
                 models.User.password == password,
+                models.User.deleted_at == None
             ) \
             .first()
 
 
 def get_users(db: Session, offset: int = 0, limit: int = 100):
     return db.query(models.User) \
+        .filter(models.User.deleted_at == None) \
         .offset(offset) \
         .limit(limit) \
         .all()
