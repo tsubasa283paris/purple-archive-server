@@ -11,7 +11,7 @@ from sql_interface.database import get_db
 router = APIRouter()
 
 
-@router.get("/albums/", response_model=List[schemas.AlbumRead])
+@router.get("/albums", response_model=List[schemas.AlbumRead])
 def read_items(
     user_info: UserInfo,
     offset: int = 0,
