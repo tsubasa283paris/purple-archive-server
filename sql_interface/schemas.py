@@ -2,6 +2,7 @@ import datetime
 from typing import List, Union
 
 from pydantic import BaseModel
+from pydantic.alias_generators import to_camel
 
 
 # ----------------------------------------------------------------
@@ -35,6 +36,9 @@ class UserReadDeep(UserRead):
 
 class UserWrite(UserBase):
     password: str
+
+    class Config:
+        alias_generator = to_camel
 
 
 class UserUpdate(UserWrite):
@@ -71,7 +75,8 @@ class AlbumReadDeep(AlbumRead):
 
 
 class AlbumWrite(AlbumBase):
-    pass
+    class Config:
+        alias_generator = to_camel
 
 
 # ----------------------------------------------------------------
@@ -97,7 +102,8 @@ class PageReadDeep(AlbumBase):
 
 
 class PageWrite(PageBase):
-    pass
+    class Config:
+        alias_generator = to_camel
 
 
 # ----------------------------------------------------------------
@@ -120,7 +126,8 @@ class GamemodeReadDeep(GamemodeRead):
 
 
 class GamemodeWrite(GamemodeBase):
-    pass
+    class Config:
+        alias_generator = to_camel
 
 
 # ----------------------------------------------------------------
@@ -143,7 +150,8 @@ class TagReadDeep(TagRead):
 
 
 class TagWrite(TagBase):
-    pass
+    class Config:
+        alias_generator = to_camel
 
 
 # ----------------------------------------------------------------
@@ -165,7 +173,8 @@ class TempAlbumReadDeep(TempAlbumRead):
 
 
 class TempAlbumWrite(TempAlbumBase):
-    pass
+    class Config:
+        alias_generator = to_camel
 
 
 # ----------------------------------------------------------------
