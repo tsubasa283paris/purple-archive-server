@@ -57,7 +57,6 @@ class AlbumBase(BaseModel):
     download_count: int
     gamemode_id: int
     played_at: Union[datetime.datetime, None]
-    deleted_at: Union[datetime.datetime, None]
 
     class Config:
         orm_mode = True
@@ -67,14 +66,15 @@ class AlbumRead(AlbumBase, CommonRead):
     id: int
 
 
-class AlbumReadDeep(AlbumRead):
-    gamemode: "GamemodeRead"
-    pages: "List[PageRead]"
-    bookmark_users: "List[UserRead]"
-    tags: "List[TagRead]"
-
-
 class AlbumWrite(AlbumBase):
+    class Config:
+        alias_generator = to_camel
+
+
+class PageMetaData(BaseModel):
+    description: str
+    player_name: str
+
     class Config:
         alias_generator = to_camel
 
@@ -161,6 +161,7 @@ class TagWrite(TagBase):
 class TempAlbumBase(BaseModel):
     uuid: str
     page_count: int
+    hash: str
 
 
 class TempAlbumRead(TempAlbumBase, CommonRead):
@@ -183,7 +184,6 @@ class TempAlbumUpdate(TempAlbumWrite):
 # update forward references
 # ----------------------------------------------------------------
 UserReadDeep.model_rebuild()
-AlbumReadDeep.model_rebuild()
 PageReadDeep.model_rebuild()
 GamemodeReadDeep.model_rebuild()
 TagReadDeep.model_rebuild()
