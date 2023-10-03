@@ -1,8 +1,10 @@
 import base64
 import binascii
+import datetime
 import os
 import hashlib
 import uuid
+from typing import Dict, List
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -11,7 +13,8 @@ from auth.auth import UserInfo
 from ocr.gif import load_gif_images
 from ocr.image_annotator import annotate_images
 from pydantic import BaseModel
-from sql_interface import crud, schemas
+from pydantic.alias_generators import to_camel
+from sql_interface import crud, models, schemas
 from sql_interface.database import get_db
 
 
@@ -19,6 +22,34 @@ TEMP_DIR_NAME = "temp_albums"
 
 
 router = APIRouter()
+
+
+def serialize_album(album: models.Album) -> Dict:
+    return {
+        "id": album.id,
+        "source": album.source,
+        "pvCount": album.pv_count,
+        "downloadCount": album.download_count,
+        "bookmarkCount": len(album.bookmark_users),
+        "pageCount": len(album.pages),
+        "playedAt": album.played_at,
+        "contributorUserId": album.contributor_user_id,
+        "gamemodeId": album.gamemode_id,
+        "tags": [
+            {
+                "id": tag.id,
+                "text": tag.text,
+            } for tag in album.tags
+        ],
+        "pageMetaData": [
+            {
+                "description": page.description,
+                "playerName": page.player_name,
+            } for page in album.pages
+        ],
+        "created_at": album.created_at,
+        "updated_at": album.updated_at,
+    }
 
 
 @router.get("/albums")
@@ -45,6 +76,82 @@ def read_albums(
             } for db_album in db_albums
         ]
     }
+
+
+class CreateAlbumReqParams(BaseModel):
+    temporary_album_uuid: str
+    gamemode_id: int
+    tag_ids: List[int]
+    played_at: str
+    page_meta_data: List[schemas.PageMetaData]
+
+    class Config:
+        alias_generator = to_camel
+
+
+@router.post("/albums")
+def create_album(
+    user_info: UserInfo,
+    params: CreateAlbumReqParams,
+    db: Session = Depends(get_db)
+):
+    # check if specified temp album exists
+    db_temp_album = crud.get_temp_album(db, params.temporary_album_uuid)
+    if db_temp_album is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specified temporaryAlbumUuid does not exist."
+        )
+    
+    # validate page length
+    if len(params.page_meta_data) != db_temp_album.page_count:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Length of pageMetaData does not match the specified " \
+                    + "temporary album."
+        )
+
+    # validate gamemode
+    db_gamemode = crud.get_gamemode(db, params.gamemode_id)
+    if db_gamemode is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specified gamemodeId does not exist."
+        )
+
+    # validate tags
+    for tag_id in params.tag_ids:
+        db_tag = crud.get_tag(db, tag_id)
+        if db_tag is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Specified tagIds involves tag(s) that do not exist."
+            )
+    
+    # validate played_at
+    iso_exception = HTTPException(
+        status_code=status.HTTP_400_BAD_REQUEST,
+        detail="Given datetime string does not match ISO format."
+    )
+    try:
+        played_at_dt = datetime.datetime.fromisoformat(params.played_at)
+    except ValueError:
+        raise iso_exception
+    if played_at_dt.tzname() is None:
+        # doesn't allow TZ-unaware ISO format
+        raise iso_exception
+    
+    # TODO upload
+    s3_uri = "hogera"
+
+    # save to database
+    db_album = crud.create_album(
+        db, params.temporary_album_uuid, params.gamemode_id,
+        params.tag_ids, params.page_meta_data, s3_uri, db_temp_album.hash,
+        user_info.id, played_at_dt
+    )
+
+    return serialize_album(db_album)
 
 
 class CreateTempAlbumReqParams(BaseModel):
@@ -103,7 +210,8 @@ def create_temp_album(
         db,
         schemas.TempAlbumWrite(
             uuid=uuid_str,
-            page_count=len(page_images)
+            page_count=len(page_images),
+            hash=hash_str
         )
     )
 

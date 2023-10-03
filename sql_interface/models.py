@@ -251,6 +251,10 @@ class TempAlbum(Base, TimestampMixin):
         Integer,
     )
 
+    hash = Column(
+        String(128),
+    )
+
     deleted_at = Column(
         DateTime(True),
         default=None,
