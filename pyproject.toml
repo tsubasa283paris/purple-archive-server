@@ -16,6 +16,7 @@ python-jose = {extras = ["cryptography"], version = "^3.3.0"}
 opencv-python = "^4.8.1.78"
 opencv-contrib-python = "^4.8.1.78"
 google-cloud-vision = "^3.4.4"
+boto3 = "^1.28.58"
 
 
 [build-system]

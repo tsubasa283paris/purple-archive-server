@@ -16,9 +16,11 @@ from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 from sql_interface import crud, models, schemas
 from sql_interface.database import get_db
+from storage.s3 import upload
 
 
 TEMP_DIR_NAME = "temp_albums"
+STORAGE_DIR_NAME = "albums/v1"
 
 
 router = APIRouter()
@@ -141,8 +143,11 @@ def create_album(
         # doesn't allow TZ-unaware ISO format
         raise iso_exception
     
-    # TODO upload
-    s3_uri = "hogera"
+    # upload to S3 bucket
+    s3_uri = upload(
+        os.path.join(TEMP_DIR_NAME, f"{params.temporary_album_uuid}.gif"),
+        f"{STORAGE_DIR_NAME}/{params.temporary_album_uuid}.gif"
+    )
 
     # save to database
     db_album = crud.create_album(
