@@ -6,6 +6,17 @@
 
 環境はWSL2。
 
+1. AWSにおいてリソースを用意し、その内容を `.env` として保存する。
+   1. S3バケットの用意。
+   1. IAMユーザの用意。 `AmazonS3FullAccess` ポリシーをアタッチする。
+   1. `.env` を以下の内容で保存する。  
+      ```bash
+      AWS_S3_BUCKET_NAME='<作成したS3バケット名>'
+      AWS_ACCESS_KEY_ID='<IAMユーザのアクセスキーID>'
+      AWS_SECRET_ACCESS_KEY='<IAMユーザのシークレットアクセスキー>'
+      AWS_DEFAULT_REGION='<S3バケットを配置したリージョン>'
+      ```
+
 1. Google Cloud Vision API用の認証情報ファイルを `google_api_credentials.json` として当リポジトリのルートディレクトリに配置する。  
    参考：<https://cloud.google.com/vision?hl=ja>
 
