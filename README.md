@@ -6,6 +6,9 @@
 
 環境はWSL2。
 
+1. Google Cloud Vision API用の認証情報ファイルを `google_api_credentials.json` として当リポジトリのルートディレクトリに配置する。  
+   参考：<https://cloud.google.com/vision?hl=ja>
+
 1. PostgreSQLをインストールする。  
    ```bash
    sudo apt update

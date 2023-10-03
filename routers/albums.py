@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
 from ocr.gif import load_gif_images
+from ocr.image_annotator import annotate_images
 from pydantic import BaseModel
 from sql_interface import crud, schemas
 from sql_interface.database import get_db
@@ -91,21 +92,7 @@ def create_temp_album(
         raise invalid_data_exception
     
     # call Google Vision API annotations
-    # TODO
-    dummy_ocr_results = [
-        {
-            "d": "dog",
-            "p": "Alice",
-        },
-        {
-            "d": "",
-            "p": "Bob",
-        },
-        {
-            "d": "cat",
-            "p": "Cassidy",
-        },
-    ]
+    ocr_results = annotate_images(page_images)
     
     # check if any album with the same hash value exist
     # (just check, no exception here)
@@ -126,8 +113,8 @@ def create_temp_album(
         "hashMatchResult": db_album.id if db_album is not None else None,
         "pageMetaData": [
             {
-                "description": ocr_result["d"],
-                "playerName": ocr_result["p"],
-            } for ocr_result in dummy_ocr_results
+                "description": ocr_result.description,
+                "playerName": ocr_result.player_name,
+            } for ocr_result in ocr_results
         ],
     }
