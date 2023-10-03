@@ -82,14 +82,12 @@ def create_temp_album(
         f.write(raw_data)
 
     # load file contents
-    # TODO: try except
-    try:
-        page_images = load_gif_images(temp_file_path)
-    except NotImplementedError:
+    page_images = load_gif_images(temp_file_path)
+    if len(page_images) <= 1:
+        print("Received too short data as GIF:", len(page_images))
         # remove temporary file
         os.remove(temp_file_path)
 
-        # raise invalid data error
         raise invalid_data_exception
     
     # call Google Vision API annotations
@@ -127,9 +125,9 @@ def create_temp_album(
         "temporaryAlbumUuid": uuid_str,
         "hashMatchResult": db_album.id if db_album is not None else None,
         "pageMetaData": [
-                {
-                    "description": ocr_result["d"],
-                    "playerName": ocr_result["p"],
-                } for ocr_result in dummy_ocr_results
+            {
+                "description": ocr_result["d"],
+                "playerName": ocr_result["p"],
+            } for ocr_result in dummy_ocr_results
         ],
     }
