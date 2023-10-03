@@ -13,6 +13,8 @@ sqlalchemy = "^2.0.21"
 alembic = "^1.12.0"
 psycopg2 = "^2.9.8"
 python-jose = {extras = ["cryptography"], version = "^3.3.0"}
+opencv-python = "^4.8.1.78"
+opencv-contrib-python = "^4.8.1.78"
 
 
 [build-system]

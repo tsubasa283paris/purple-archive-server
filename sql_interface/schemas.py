@@ -161,7 +161,6 @@ class TagWrite(TagBase):
 class TempAlbumBase(BaseModel):
     uuid: str
     page_count: int
-    deleted_at: Union[datetime.datetime, None]
 
 
 class TempAlbumRead(TempAlbumBase, CommonRead):
@@ -173,8 +172,11 @@ class TempAlbumReadDeep(TempAlbumRead):
 
 
 class TempAlbumWrite(TempAlbumBase):
-    class Config:
-        alias_generator = to_camel
+    pass
+
+
+class TempAlbumUpdate(TempAlbumWrite):
+    deleted_at: Union[datetime.datetime, None]
 
 
 # ----------------------------------------------------------------
