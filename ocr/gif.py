@@ -11,7 +11,7 @@ def load_gif_images(gif_path: str) -> List[np.ndarray]:
 
     ret = True
     while ret:
-        # 次のフレーム読み込み
+        # load next frame
         ret, frame = gif.read()
         if not ret:
             break
