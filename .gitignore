@@ -1,3 +1,9 @@
+# temporary files created through server functionalities
+temp_albums/
+
+# Google Vision API credential file
+google_api_credentials.json
+
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
