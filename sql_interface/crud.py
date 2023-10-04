@@ -192,6 +192,18 @@ def soft_delete_album(
 
     db.commit()
 
+def increment_album_dlcount(
+    db: Session, id: int
+):
+    db_album = db.query(models.Album) \
+        .filter(models.Album.id == id) \
+        .first()
+    db_album.download_count += 1
+
+    db.commit()
+
+    return db_album
+
 
 # ----------------------------------------------------------------
 # game_mode
