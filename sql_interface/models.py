@@ -45,7 +45,7 @@ album_tag_table = Table(
         primary_key=True,
     ),
     Column(
-        "tag",
+        "tag_id",
         ForeignKey("tag.id"),
         primary_key=True,
     ),

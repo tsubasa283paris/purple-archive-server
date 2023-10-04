@@ -1,9 +1,16 @@
 import datetime
-from typing import List, Union
+from typing import Any, Dict, List, Union
 
 from sqlalchemy.orm import Session
 
 from . import models, schemas
+
+
+def remove_item_with_id(l: List, target: Any) -> List:
+    for i, item in enumerate(l):
+        if item.id == target.id:
+            return l[:i] + l[i + 1:]
+    raise ValueError("target not in list")
 
 
 # ----------------------------------------------------------------
@@ -117,6 +124,59 @@ def create_album(
     db_temp_album = get_temp_album(db, temp_uuid)
     db_temp_album.deleted_at = datetime.datetime.now().astimezone()
 
+    db.commit()
+    db.refresh(db_album)
+
+    return db_album
+
+def update_album(
+    db: Session, id: int, gamemode_id: int,
+    tag_ids: List[int], page_meta_data: List[schemas.PageMetaData]
+):
+    db_album = db.query(models.Album) \
+        .filter(
+            models.Album.id == id,
+            models.Album.deleted_at == None
+        ) \
+        .first()
+    
+    # update gamemode_id
+    db_album.gamemode_id = gamemode_id
+    
+    # update album-tag relations
+    already_related_tag_ids: Dict[int, bool] = {}
+    for tag in db_album.tags:
+        already_related_tag_ids[tag.id] = True
+    # when already related tag was not specified
+    for already_related_tag_id in already_related_tag_ids.keys():
+        if not already_related_tag_id in tag_ids:
+            db_tag = get_tag(db, already_related_tag_id)
+            db_album.tags = remove_item_with_id(db_album.tags, db_tag)
+            # delete tag if no album is related
+            if len(db_tag.albums) == 0:
+                db.query(models.Tag) \
+                    .filter(models.Tag.id == db_tag.id) \
+                    .delete()
+    # when specified tags that are not related now
+    for tag_id in tag_ids:
+        if already_related_tag_ids.get(tag_id):
+            continue
+
+        db_tag = get_tag(db, tag_id)
+        db_album.tags.append(db_tag)
+    
+    # update page records
+    for i, page in enumerate(page_meta_data):
+        db_page = db.query(models.Page) \
+            .filter(
+                models.Page.album_id == db_album.id,
+                models.Page.index == i
+            ) \
+            .first()
+        assert db_page is not None
+        db_page.description = page.description
+        db_page.player_name = page.player_name
+    
     db.commit()
     db.refresh(db_album)
 
