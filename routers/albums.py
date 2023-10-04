@@ -355,3 +355,22 @@ def delete_album(
     crud.soft_delete_album(db, album_id)
 
     return {}
+
+
+@router.post("/albums/{album_id}/dlcount")
+def increment_album_dlcount(
+    user_info: UserInfo,
+    album_id: int,
+    db: Session = Depends(get_db)
+):
+    db_album = crud.get_album(db, album_id, pv_increment=False)
+    if db_album is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Specified album does not exist."
+        )
+    
+    # increment dl_count
+    db_album = crud.increment_album_dlcount(db, album_id)
+
+    return serialize_album(db_album)
