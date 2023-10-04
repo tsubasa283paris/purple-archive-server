@@ -89,6 +89,24 @@ def read_albums(
     }
 
 
+@router.get("/albums/{album_id}")
+def read_album(
+    user_info: UserInfo,
+    album_id: int,
+    incrementPv: str = "",
+    db: Session = Depends(get_db)
+):
+    db_album = crud.get_album(
+        db, id=album_id, pv_increment=bool(len(incrementPv))
+    )
+    if db_album is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Specified album does not exist."
+        )
+    return serialize_album(db_album)
+
+
 class CreateAlbumReqParams(BaseModel):
     temporary_album_uuid: str
     gamemode_id: int

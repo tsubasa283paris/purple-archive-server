@@ -52,6 +52,18 @@ def create_user(db: Session, user: schemas.UserWrite):
 # album
 # ----------------------------------------------------------------
 
+def get_album(db: Session, id: int, pv_increment: bool = False):
+    db_album = db.query(models.Album) \
+        .filter(
+            models.Album.id == id,
+            models.Album.deleted_at == None
+        ) \
+        .first()
+    if pv_increment and db_album is not None:
+        db_album.pv_count += 1
+        db.commit()
+    return db_album
+
 def get_albums(db: Session, offset: int = 0, limit: int = 100):
     return db.query(models.Album) \
         .filter(models.Album.deleted_at == None) \
@@ -66,7 +78,6 @@ def get_album_by_hash(db: Session, hash_str: str):
             models.Album.deleted_at == None,
         ) \
         .first()
-
 
 def create_album(
     db: Session, temp_uuid: str, gamemode_id: int,
