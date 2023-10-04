@@ -1,21 +1,34 @@
 from typing import List
 
-import cv2
-import numpy as np
+from PIL import Image
 
 
-def load_gif_images(gif_path: str) -> List[np.ndarray]:
-    gif = cv2.VideoCapture(gif_path)
+THUMB_SIZE = (250, 250)
 
-    gif_images: List[np.ndarray] = []
 
-    ret = True
-    while ret:
-        # load next frame
-        ret, frame = gif.read()
-        if not ret:
-            break
+class GifManager:
+    src_path: str
+    images: List[Image.Image]
 
-        gif_images.append(frame)
+    def __init__(self, gif_path: str) -> None:
+        self.src_path = gif_path
+        self.images = []
+
+        with Image.open(gif_path) as image:
+            for i in range(image.n_frames):
+                image.seek(i)
+                self.images.append(image.copy())
     
-    return gif_images
+    def save_thumb(self, dst: str) -> None:
+        thumb_images: List[Image.Image] = []
+        for image in self.images:
+            thumb_image = image.copy()
+            thumb_image.thumbnail(THUMB_SIZE)
+            thumb_images.append(thumb_image)
+
+        thumb_images[0].save(
+            dst,
+            save_all=True,
+            append_images=thumb_images[1:],
+            loop=0,
+        )

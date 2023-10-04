@@ -1,11 +1,11 @@
 from dataclasses import dataclass
+from io import BytesIO
 from typing import List
 
-import cv2
-import numpy as np
 from google.cloud.vision import ImageAnnotatorClient
 from google.cloud.vision_v1.types import Feature
 from google.oauth2 import service_account
+from PIL import Image
 
 
 GAPI_ENDPOINT = "https://vision.googleapis.com/v1/images:annotate"
@@ -24,7 +24,7 @@ class ImageAnnotation:
 
 
 def annotate_images(
-    images: List[np.ndarray], lang_hint: str = DEFAULT_LANG_HINT
+    images: List[Image.Image], lang_hint: str = DEFAULT_LANG_HINT
 ) -> List[ImageAnnotation]:
     # load credentials
     credentials = service_account.Credentials \
@@ -36,10 +36,11 @@ def annotate_images(
     # create request object formatted for Google Vision API
     gapi_request_param: List[dict] = []
     for image in images:
-        _, buffer = cv2.imencode(".jpg", image)
+        buffer = BytesIO()
+        image.convert("RGB").save(buffer, "jpeg")
         gapi_request_param.append({
             "image": {
-                "content": buffer.tobytes()
+                "content": buffer.getvalue()
             },
             "features": [{
                 "type_": Feature.Type.DOCUMENT_TEXT_DETECTION

@@ -117,6 +117,10 @@ class Album(Base, TimestampMixin):
         String(512),
     )
 
+    thumb_source = Column(
+        String(512),
+    )
+
     hash = Column(
         String(512),
         index=True,

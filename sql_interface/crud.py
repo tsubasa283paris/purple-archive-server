@@ -71,12 +71,13 @@ def get_album_by_hash(db: Session, hash_str: str):
 def create_album(
     db: Session, temp_uuid: str, gamemode_id: int,
     tag_ids: List[int], page_meta_data: List[schemas.PageMetaData],
-    source: str, hash: str, contributor_user_id: str,
+    source: str, thumb_source: str, hash: str, contributor_user_id: str,
     played_at: datetime.datetime
 ):
     # first, create album record
     db_album = models.Album(
         source=source,
+        thumb_source=thumb_source,
         hash=hash,
         contributor_user_id=contributor_user_id,
         gamemode_id=gamemode_id,

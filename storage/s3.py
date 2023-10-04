@@ -1,12 +1,9 @@
 import os
 
 import boto3
-from dotenv import load_dotenv
 
 
 def upload(src: str, dst: str) -> str:
-    load_dotenv()
-    
     client = boto3.client("s3")
 
     region = os.environ["AWS_DEFAULT_REGION"]

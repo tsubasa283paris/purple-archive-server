@@ -10,7 +10,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
-from ocr.gif import load_gif_images
+from ocr.gif import GifManager
 from ocr.image_annotator import annotate_images
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
@@ -26,10 +26,19 @@ STORAGE_DIR_NAME = "albums/v1"
 router = APIRouter()
 
 
+def get_gif_path(uuid: str) -> str:
+    return os.path.join(TEMP_DIR_NAME, f"{uuid}.gif")
+
+
+def temp_to_storage_path(temp_path: str) -> str:
+    return temp_path.replace(TEMP_DIR_NAME, STORAGE_DIR_NAME)
+
+
 def serialize_album(album: models.Album) -> Dict:
     return {
         "id": album.id,
         "source": album.source,
+        "thumbSource": album.thumb_source,
         "pvCount": album.pv_count,
         "downloadCount": album.download_count,
         "bookmarkCount": len(album.bookmark_users),
@@ -143,17 +152,32 @@ def create_album(
         # doesn't allow TZ-unaware ISO format
         raise iso_exception
     
-    # upload to S3 bucket
+    # generate thumbnail file
+    file_path = get_gif_path(params.temporary_album_uuid)
+    thumb_path = file_path.replace(".gif", "_thumb.gif")
+    gif = GifManager(file_path)
+    gif.save_thumb(thumb_path)
+    
+    # upload original and thumb to S3 bucket
     s3_uri = upload(
-        os.path.join(TEMP_DIR_NAME, f"{params.temporary_album_uuid}.gif"),
-        f"{STORAGE_DIR_NAME}/{params.temporary_album_uuid}.gif"
+        file_path,
+        temp_to_storage_path(file_path)
     )
+    s3_thumb_uri = upload(
+        thumb_path,
+        temp_to_storage_path(thumb_path)
+    )
+
+    # remove temporary files
+    os.remove(file_path)
+    os.remove(thumb_path)
 
     # save to database
     db_album = crud.create_album(
         db, params.temporary_album_uuid, params.gamemode_id,
-        params.tag_ids, params.page_meta_data, s3_uri, db_temp_album.hash,
-        user_info.id, played_at_dt
+        params.tag_ids, params.page_meta_data,
+        s3_uri, s3_thumb_uri, db_temp_album.hash, user_info.id,
+        played_at_dt
     )
 
     return serialize_album(db_album)
@@ -190,21 +214,21 @@ def create_temp_album(
 
     # save a temporary file server-side
     os.makedirs(TEMP_DIR_NAME, exist_ok=True)
-    temp_file_path = os.path.join(TEMP_DIR_NAME, f"{uuid_str}.gif")
+    temp_file_path = get_gif_path(uuid_str)
     with open(temp_file_path, "wb") as f:
         f.write(raw_data)
 
     # load file contents
-    page_images = load_gif_images(temp_file_path)
-    if len(page_images) <= 1:
-        print("Received too short data as GIF:", len(page_images))
+    gif = GifManager(temp_file_path)
+    if len(gif.images) <= 1:
+        print("Received too short data as GIF:", len(gif.images))
         # remove temporary file
         os.remove(temp_file_path)
 
         raise invalid_data_exception
     
     # call Google Vision API annotations
-    ocr_results = annotate_images(page_images)
+    ocr_results = annotate_images(gif.images)
     
     # check if any album with the same hash value exist
     # (just check, no exception here)
@@ -215,7 +239,7 @@ def create_temp_album(
         db,
         schemas.TempAlbumWrite(
             uuid=uuid_str,
-            page_count=len(page_images),
+            page_count=len(gif.images),
             hash=hash_str
         )
     )
