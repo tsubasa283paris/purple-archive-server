@@ -72,6 +72,7 @@ def read_albums(
     limit: int = 100,
     db: Session = Depends(get_db)
 ):
+    # TODO complicated query parameters
     db_albums = crud.get_albums(db, offset=offset, limit=limit)
     return {
         "albumsCountAll": len(db_albums),
