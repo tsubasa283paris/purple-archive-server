@@ -35,6 +35,8 @@ def temp_to_storage_path(temp_path: str) -> str:
 
 
 def serialize_album(album: models.Album) -> Dict:
+    sorted_tags = sorted(album.tags, key=lambda x: x.id)
+    sorted_pages = sorted(album.pages, key=lambda x: x.index)
     return {
         "id": album.id,
         "source": album.source,
@@ -49,14 +51,14 @@ def serialize_album(album: models.Album) -> Dict:
         "tags": [
             {
                 "id": tag.id,
-                "text": tag.text,
-            } for tag in album.tags
+                "name": tag.name,
+            } for tag in sorted_tags
         ],
         "pageMetaData": [
             {
                 "description": page.description,
                 "playerName": page.player_name,
-            } for page in album.pages
+            } for page in sorted_pages
         ],
         "created_at": album.created_at,
         "updated_at": album.updated_at,
@@ -273,3 +275,63 @@ def create_temp_album(
             } for ocr_result in ocr_results
         ],
     }
+
+
+class UpdateAlbumReqParams(BaseModel):
+    gamemode_id: int
+    tag_ids: List[int]
+    page_meta_data: List[schemas.PageMetaData]
+
+    class Config:
+        alias_generator = to_camel
+
+
+@router.put("/albums/{album_id}")
+def update_album(
+    user_info: UserInfo,
+    album_id: int,
+    params: UpdateAlbumReqParams,
+    db: Session = Depends(get_db)
+):
+    # check if album exists
+    db_album = crud.get_album(
+        db, id=album_id, pv_increment=False
+    )
+    if db_album is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Specified album does not exist."
+        )
+
+    # validate page length
+    if len(params.page_meta_data) != len(db_album.pages):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Length of pageMetaData does not match the specified " \
+                    + "album."
+        )
+
+    # validate gamemode
+    db_gamemode = crud.get_gamemode(db, params.gamemode_id)
+    if db_gamemode is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specified gamemodeId does not exist."
+        )
+
+    # validate tags
+    for tag_id in params.tag_ids:
+        db_tag = crud.get_tag(db, tag_id)
+        if db_tag is None:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Specified tagIds involves tag(s) that do not exist."
+            )
+    
+    # conduct update
+    db_album = crud.update_album(
+        db, db_album.id, params.gamemode_id,
+        params.tag_ids, params.page_meta_data
+    )
+
+    return serialize_album(db_album)
