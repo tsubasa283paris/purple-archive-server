@@ -3,7 +3,12 @@ from fastapi.exceptions import RequestValidationError
 from fastapi.responses import JSONResponse
 
 from auth.auth import auth_router
+from dotenv import load_dotenv
 from routers import users, albums
+
+
+# load .env
+load_dotenv()
 
 
 # app = FastAPI(dependencies=[Depends(get_query_token)])

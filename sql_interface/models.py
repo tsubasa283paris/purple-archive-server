@@ -45,7 +45,7 @@ album_tag_table = Table(
         primary_key=True,
     ),
     Column(
-        "tag",
+        "tag_id",
         ForeignKey("tag.id"),
         primary_key=True,
     ),
@@ -114,6 +114,10 @@ class Album(Base, TimestampMixin):
     )
 
     source = Column(
+        String(512),
+    )
+
+    thumb_source = Column(
         String(512),
     )
 
@@ -249,6 +253,10 @@ class TempAlbum(Base, TimestampMixin):
 
     page_count = Column(
         Integer,
+    )
+
+    hash = Column(
+        String(128),
     )
 
     deleted_at = Column(
