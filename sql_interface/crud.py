@@ -182,6 +182,16 @@ def update_album(
 
     return db_album
 
+def soft_delete_album(
+    db: Session, id: int
+):
+    db_album = db.query(models.Album) \
+        .filter(models.Album.id == id) \
+        .first()
+    db_album.deleted_at = datetime.datetime.now().astimezone()
+
+    db.commit()
+
 
 # ----------------------------------------------------------------
 # game_mode

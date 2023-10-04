@@ -335,3 +335,23 @@ def update_album(
     )
 
     return serialize_album(db_album)
+
+
+@router.delete("/albums/{album_id}")
+def delete_album(
+    user_info: UserInfo,
+    album_id: int,
+    db: Session = Depends(get_db)
+):
+    # (this crud function ensures that the album.deleted_at is null)
+    db_album = crud.get_album(db, album_id, pv_increment=False)
+    if db_album is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Specified album does not exist."
+        )
+    
+    # conduct soft-delete
+    crud.soft_delete_album(db, album_id)
+
+    return {}
