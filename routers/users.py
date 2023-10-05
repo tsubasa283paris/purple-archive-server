@@ -54,7 +54,10 @@ def read_user(
 ):
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:
-        raise HTTPException(status_code=404, detail="Specified user does not exist.")
+        raise HTTPException(
+            status_code=404,
+            detail="Specified user does not exist."
+        )
     return {
         "id": db_user.id,
         "displayName": db_user.display_name,
@@ -71,7 +74,10 @@ def create_user(
 ):
     db_user = crud.get_user(db, id=user.id)
     if db_user:
-        raise HTTPException(status_code=400, detail="User ID already registered.")
+        raise HTTPException(
+            status_code=400,
+            detail="Specified user ID already exists."
+        )
     created_user = crud.create_user(db=db, user=user)
 
     return {
