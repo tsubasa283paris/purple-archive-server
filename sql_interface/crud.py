@@ -6,9 +6,9 @@ from sqlalchemy.orm import Session
 from . import models, schemas
 
 
-def remove_item_with_id(l: List, target: Any) -> List:
+def remove_item_with_id(l: List, target_id: Any) -> List:
     for i, item in enumerate(l):
-        if item.id == target.id:
+        if item.id == target_id:
             return l[:i] + l[i + 1:]
     raise ValueError("target not in list")
 
@@ -156,7 +156,7 @@ def update_album(
     for already_related_tag_id in already_related_tag_ids.keys():
         if not already_related_tag_id in tag_ids:
             db_tag = get_tag(db, already_related_tag_id)
-            db_album.tags = remove_item_with_id(db_album.tags, db_tag)
+            db_album.tags = remove_item_with_id(db_album.tags, db_tag.id)
             # delete tag if no album is related
             if len(db_tag.albums) == 0:
                 db.query(models.Tag) \
@@ -252,3 +252,63 @@ def create_temp_album(db: Session, temp_album: schemas.TempAlbumWrite):
     db.commit()
     db.refresh(db_temp_album)
     return db_temp_album
+
+
+# ----------------------------------------------------------------
+# bookmark
+# ----------------------------------------------------------------
+
+def add_bookmarks(db: Session, user_id: int, album_ids: List[int]):
+    db_user = db.query(models.User) \
+        .filter(models.User.id == user_id) \
+        .first()
+    assert db_user is not None
+
+    # update user-album relations
+    already_bookmarked_album_ids: Dict[int, bool] = {}
+    bookmarked_album_ids: List[int] = []
+    for bookmark_album in db_user.bookmark_albums:
+        already_bookmarked_album_ids[bookmark_album.id] = True
+        bookmarked_album_ids.append(bookmark_album.id)
+    for album_id in album_ids:
+        if already_bookmarked_album_ids.get(album_id):
+            continue
+        db_album = db.query(models.Album) \
+            .filter(models.Album.id == album_id) \
+            .first()
+        if db_album is None:
+            continue
+        # add relation
+        db_user.bookmark_albums.append(db_album)
+        bookmarked_album_ids.append(db_album.id)
+    
+    db.commit()
+    db.refresh(db_user)
+    
+    return bookmarked_album_ids
+
+def remove_bookmarks(db: Session, user_id: int, album_ids: List[int]):
+    db_user = db.query(models.User) \
+        .filter(models.User.id == user_id) \
+        .first()
+    assert db_user is not None
+
+    # update user-album relations
+    already_bookmarked_album_ids: Dict[int, bool] = {}
+    bookmarked_album_ids: List[int] = []
+    for bookmark_album in db_user.bookmark_albums:
+        already_bookmarked_album_ids[bookmark_album.id] = True
+        bookmarked_album_ids.append(bookmark_album.id)
+    for album_id in album_ids:
+        if already_bookmarked_album_ids.get(album_id) is None:
+            continue
+        # remove relation
+        db_user.bookmark_albums = remove_item_with_id(
+            db_user.bookmark_albums, album_id
+        )
+        bookmarked_album_ids.remove(album_id)
+    
+    db.commit()
+    db.refresh(db_user)
+    
+    return bookmarked_album_ids
