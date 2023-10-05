@@ -14,7 +14,8 @@ router = APIRouter()
 @router.get("/users")
 def read_users(
     user_info: UserInfo,
-    offset: int = 0, limit: int = 100,
+    offset: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
 ):
     db_users = crud.get_users(db, offset=offset, limit=limit)
@@ -28,6 +29,7 @@ def read_users(
             "updatedAt": db_user.updated_at,
         })
     return {
+        "usersCountTotal": crud.count_total_users(db),
         "users": users,
     }
 

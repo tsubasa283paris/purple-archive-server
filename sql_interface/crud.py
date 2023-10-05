@@ -43,6 +43,11 @@ def get_users(db: Session, offset: int = 0, limit: int = 100):
         .all()
 
 
+def count_total_users(db: Session):
+    return db.query(models.User) \
+        .count()
+
+
 def create_user(db: Session, user: schemas.UserWrite):
     db_user = models.User(
         id=user.id,
