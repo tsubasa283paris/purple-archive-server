@@ -1,12 +1,10 @@
-from typing import List
-
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, status
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
-from sql_interface import crud, schemas
+from sql_interface import crud
 from sql_interface.database import get_db
 
 
@@ -52,7 +50,7 @@ def create_gamemodes(
     db_gamemode = crud.get_gamemode_by_name(db, params.name)
     if db_gamemode:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Specified name already exists."
         )
     created_gamemode = crud.create_gamemode(db, params.name)
@@ -72,7 +70,7 @@ def delete_gamemodes(
     db_gamemode = crud.get_gamemode(db, gamemode_id)
     if db_gamemode is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Specified gamemode does not exist."
         )
     crud.delete_gamemode(db, gamemode_id)
