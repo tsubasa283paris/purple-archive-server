@@ -1,5 +1,6 @@
 import datetime
-from typing import Any, Dict, List, Union
+from dataclasses import dataclass
+from typing import Any, Dict, List, Tuple, Union
 
 from sqlalchemy.orm import Session
 
@@ -35,17 +36,24 @@ def get_user(db: Session, id: str, password: Union[str, None] = None):
             .first()
 
 
+@dataclass
+class GetUsers:
+    users: List[models.User]
+    users_count: int
+
+
 def get_users(db: Session, offset: int = 0, limit: int = 100):
-    return db.query(models.User) \
-        .filter(models.User.deleted_at == None) \
-        .offset(offset) \
-        .limit(limit) \
-        .all()
-
-
-def count_total_users(db: Session):
-    return db.query(models.User) \
-        .count()
+    query = db.query(models.User) \
+                .filter(models.User.deleted_at == None)
+    total_count = query.count()
+    return GetUsers(
+        db.query(models.User) \
+            .filter(models.User.deleted_at == None) \
+            .offset(offset) \
+            .limit(limit) \
+            .all(),
+        total_count
+    )
 
 
 def create_user(db: Session, user: schemas.UserWrite):
@@ -229,6 +237,40 @@ def get_tag(db: Session, id: int):
         .filter(models.Tag.id == id) \
         .first()
 
+def get_tag_by_name(db: Session, name: str):
+    return db.query(models.Tag) \
+        .filter(models.Tag.name == name) \
+        .first()
+
+@dataclass
+class GetTags:
+    tags: List[models.Tag]
+    tags_count: int
+
+def get_tags(
+    db: Session, partial_name: str, offset: int = 0, limit: int = 100
+):
+    query = db.query(models.Tag)
+    if len(partial_name):
+        query = query.filter(
+            models.Tag.name.like("%" + partial_name + "%")
+        )
+    total_count = query.count()
+    return GetTags(
+        query \
+            .offset(offset) \
+            .limit(limit) \
+            .all(),
+        total_count
+    )
+
+def create_tag(db: Session, name: str):
+    db_tag = models.Tag(
+        name=name,
+    )
+    db.add(db_tag)
+    db.commit()
+    return db_tag
 
 # ----------------------------------------------------------------
 # temp_album

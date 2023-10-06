@@ -1,5 +1,3 @@
-from typing import List
-
 from fastapi import Depends, APIRouter, HTTPException
 from sqlalchemy.orm import Session
 
@@ -18,18 +16,19 @@ def read_users(
     limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    db_users = crud.get_users(db, offset=offset, limit=limit)
+    get_users_result = crud.get_users(db, offset=offset, limit=limit)
 
     users = []
-    for db_user in db_users:
+    for db_user in get_users_result.users:
         users.append({
             "id": db_user.id,
             "displayName": db_user.display_name,
             "createdAt": db_user.created_at,
             "updatedAt": db_user.updated_at,
         })
+    users.sort(key=lambda x: x["id"])
     return {
-        "usersCountTotal": crud.count_total_users(db),
+        "usersCountTotal": get_users_result.users_count,
         "users": users,
     }
 
