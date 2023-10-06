@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 from auth.auth import auth_router
 from dotenv import load_dotenv
-from routers import users, albums
+from routers import users, albums, bookmarks, tags, gamemodes
 
 
 # load .env
@@ -24,8 +24,6 @@ async def handler(request: Request, exc: RequestValidationError):
 app.include_router(auth_router)
 app.include_router(users.router)
 app.include_router(albums.router)
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
+app.include_router(bookmarks.router)
+app.include_router(tags.router)
+app.include_router(gamemodes.router)

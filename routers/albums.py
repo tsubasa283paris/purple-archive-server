@@ -104,7 +104,7 @@ def read_album(
     )
     if db_album is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Specified album does not exist."
         )
     return serialize_album(db_album)
@@ -300,7 +300,7 @@ def update_album(
     )
     if db_album is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Specified album does not exist."
         )
 
@@ -348,7 +348,7 @@ def delete_album(
     db_album = crud.get_album(db, album_id, pv_increment=False)
     if db_album is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Specified album does not exist."
         )
     
@@ -367,7 +367,7 @@ def increment_album_dlcount(
     db_album = crud.get_album(db, album_id, pv_increment=False)
     if db_album is None:
         raise HTTPException(
-            status_code=404,
+            status_code=status.HTTP_404_NOT_FOUND,
             detail="Specified album does not exist."
         )
     

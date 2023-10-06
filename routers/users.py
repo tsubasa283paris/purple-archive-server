@@ -1,6 +1,4 @@
-from typing import List
-
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, status
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
@@ -14,20 +12,23 @@ router = APIRouter()
 @router.get("/users")
 def read_users(
     user_info: UserInfo,
-    offset: int = 0, limit: int = 100,
+    offset: int = 0,
+    limit: int = 100,
     db: Session = Depends(get_db),
 ):
-    db_users = crud.get_users(db, offset=offset, limit=limit)
+    get_users_result = crud.get_users(db, offset=offset, limit=limit)
 
     users = []
-    for db_user in db_users:
+    for db_user in get_users_result.users:
         users.append({
             "id": db_user.id,
             "displayName": db_user.display_name,
             "createdAt": db_user.created_at,
             "updatedAt": db_user.updated_at,
         })
+    users.sort(key=lambda x: x["id"])
     return {
+        "usersCountTotal": get_users_result.users_count,
         "users": users,
     }
 
@@ -52,7 +53,10 @@ def read_user(
 ):
     db_user = crud.get_user(db, user_id=user_id)
     if db_user is None:
-        raise HTTPException(status_code=404, detail="Specified user does not exist.")
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specified user does not exist."
+        )
     return {
         "id": db_user.id,
         "displayName": db_user.display_name,
@@ -69,7 +73,10 @@ def create_user(
 ):
     db_user = crud.get_user(db, id=user.id)
     if db_user:
-        raise HTTPException(status_code=400, detail="User ID already registered.")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Specified user ID already exists."
+        )
     created_user = crud.create_user(db=db, user=user)
 
     return {
