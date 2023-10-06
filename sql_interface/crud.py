@@ -227,6 +227,48 @@ def get_gamemode(db: Session, id: int):
         .filter(models.Gamemode.id == id) \
         .first()
 
+def get_gamemode_by_name(db: Session, name: str):
+    return db.query(models.Gamemode) \
+        .filter(models.Gamemode.name == name) \
+        .first()
+
+@dataclass
+class GetGamemodes:
+    gamemodes: List[models.Gamemode]
+    gamemodes_count: int
+
+def get_gamemodes(
+    db: Session, partial_name: str, offset: int = 0, limit: int = 100
+):
+    query = db.query(models.Gamemode)
+    if len(partial_name):
+        query = query.filter(
+            models.Gamemode.name.like("%" + partial_name + "%")
+        )
+    total_count = query.count()
+    return GetGamemodes(
+        query \
+            .offset(offset) \
+            .limit(limit) \
+            .all(),
+        total_count
+    )
+
+def create_gamemode(db: Session, name: str):
+    db_gamemode = models.Gamemode(
+        name=name,
+    )
+    db.add(db_gamemode)
+    db.commit()
+    return db_gamemode
+
+def delete_gamemode(db: Session, gamemode_id: int):
+    db.query(models.Gamemode) \
+        .filter(models.Gamemode.id == gamemode_id) \
+        .delete()
+    
+    db.commit()
+
 
 # ----------------------------------------------------------------
 # tag

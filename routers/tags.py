@@ -53,7 +53,7 @@ def create_tag(
     if db_tag:
         raise HTTPException(
             status_code=400,
-            detail="Specified tag already exists."
+            detail="Specified name already exists."
         )
     created_tag = crud.create_tag(db, params.name)
 

@@ -4,7 +4,7 @@ from fastapi.responses import JSONResponse
 
 from auth.auth import auth_router
 from dotenv import load_dotenv
-from routers import users, albums, bookmarks, tags
+from routers import users, albums, bookmarks, tags, gamemodes
 
 
 # load .env
@@ -26,6 +26,7 @@ app.include_router(users.router)
 app.include_router(albums.router)
 app.include_router(bookmarks.router)
 app.include_router(tags.router)
+app.include_router(gamemodes.router)
 
 
 @app.get("/")
