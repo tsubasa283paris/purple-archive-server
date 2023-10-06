@@ -27,8 +27,3 @@ app.include_router(albums.router)
 app.include_router(bookmarks.router)
 app.include_router(tags.router)
 app.include_router(gamemodes.router)
-
-
-@app.get("/")
-async def root():
-    return {"message": "Hello World"}
