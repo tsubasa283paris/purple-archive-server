@@ -1,12 +1,10 @@
-from typing import List
-
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter, HTTPException, status
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
-from sql_interface import crud, schemas
+from sql_interface import crud
 from sql_interface.database import get_db
 
 
@@ -52,7 +50,7 @@ def create_tag(
     db_tag = crud.get_tag_by_name(db, params.name)
     if db_tag:
         raise HTTPException(
-            status_code=400,
+            status_code=status.HTTP_400_BAD_REQUEST,
             detail="Specified name already exists."
         )
     created_tag = crud.create_tag(db, params.name)

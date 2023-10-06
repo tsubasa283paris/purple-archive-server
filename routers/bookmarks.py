@@ -1,6 +1,6 @@
 from typing import List
 
-from fastapi import Depends, APIRouter, HTTPException
+from fastapi import Depends, APIRouter
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
