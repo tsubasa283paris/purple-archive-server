@@ -4,6 +4,7 @@ from fastapi import Depends, APIRouter
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
+from routers.json_response import json_response
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 from sql_interface import crud
@@ -26,11 +27,11 @@ def add_bookmarks(
     params: AddBookmarksReqParams,
     db: Session = Depends(get_db),
 ):
-    return {
+    return json_response({
         "albumIds": crud.add_bookmarks(
             db, user_info.id, params.album_ids
         ),
-    }
+    })
 
 
 class RemoveBookmarksReqParams(BaseModel):
@@ -46,8 +47,8 @@ def remove_bookmarks(
     params: RemoveBookmarksReqParams,
     db: Session = Depends(get_db),
 ):
-    return {
+    return json_response({
         "albumIds": crud.remove_bookmarks(
             db, user_info.id, params.album_ids
         ),
-    }
+    })

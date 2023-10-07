@@ -2,6 +2,7 @@ from fastapi import Depends, APIRouter, HTTPException, status
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
+from routers.json_response import json_response
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 from sql_interface import crud
@@ -28,10 +29,10 @@ def read_gamemodes(
             "name": db_gamemode.name,
         })
     gamemodes.sort(key=lambda x: x["id"])
-    return {
+    return json_response({
         "gamemodesCountAll": get_gamemode_result.gamemodes_count,
         "users": gamemodes,
-    }
+    })
 
 
 class CreateGamemodeReqParams(BaseModel):
@@ -55,10 +56,10 @@ def create_gamemodes(
         )
     created_gamemode = crud.create_gamemode(db, params.name)
 
-    return {
+    return json_response({
         "id": created_gamemode.id,
         "name": created_gamemode.name,
-    }
+    })
 
 
 @router.delete("/gamemodes/{gamemode_id}")
@@ -75,4 +76,4 @@ def delete_gamemodes(
         )
     crud.delete_gamemode(db, gamemode_id)
 
-    return {}
+    return json_response({})
