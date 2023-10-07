@@ -1,10 +1,10 @@
 from fastapi import Depends, APIRouter, HTTPException, status
 from sqlalchemy.orm import Session
+from pydantic import BaseModel
+from pydantic.alias_generators import to_camel
 
 from auth.auth import UserInfo
 from routers.json_response import json_response
-from pydantic import BaseModel
-from pydantic.alias_generators import to_camel
 from sql_interface import crud
 from sql_interface.database import get_db
 
