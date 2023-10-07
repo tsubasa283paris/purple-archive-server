@@ -7,14 +7,14 @@ import uuid
 from typing import Dict, List, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from pydantic.alias_generators import to_camel
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
 from ocr.gif import GifManager
 from ocr.image_annotator import annotate_images
 from routers.json_response import json_response
-from pydantic import BaseModel
-from pydantic.alias_generators import to_camel
 from sql_interface import crud, models, schemas
 from sql_interface.database import get_db
 from storage.s3 import upload
