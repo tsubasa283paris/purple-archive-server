@@ -2,6 +2,7 @@ from fastapi import Depends, APIRouter, HTTPException, status
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
+from routers.json_response import json_response
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 from sql_interface import crud
@@ -28,10 +29,10 @@ def read_tags(
             "name": db_tag.name,
         })
     tags.sort(key=lambda x: x["id"])
-    return {
+    return json_response({
         "tagsCountAll": get_tag_result.tags_count,
         "users": tags,
-    }
+    })
 
 
 class CreateTagReqParams(BaseModel):
@@ -55,7 +56,7 @@ def create_tag(
         )
     created_tag = crud.create_tag(db, params.name)
 
-    return {
+    return json_response({
         "id": created_tag.id,
         "name": created_tag.name,
-    }
+    })

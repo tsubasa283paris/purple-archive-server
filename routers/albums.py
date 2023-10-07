@@ -4,7 +4,7 @@ import datetime
 import os
 import hashlib
 import uuid
-from typing import Dict, List, Literal, Union
+from typing import Dict, List, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -12,6 +12,7 @@ from sqlalchemy.orm import Session
 from auth.auth import UserInfo
 from ocr.gif import GifManager
 from ocr.image_annotator import annotate_images
+from routers.json_response import json_response
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 from sql_interface import crud, models, schemas
@@ -52,6 +53,7 @@ def ga_order_str_to_en(s: str):
         return crud.GET_ALBUMS_ORDER_DESC
     else:
         raise ValueError()
+
 
 router = APIRouter()
 
@@ -215,7 +217,7 @@ def read_albums(
     for bookmark_album in user_info.bookmark_albums:
         is_bookmarked_map[bookmark_album.id] = True
         
-    return {
+    return json_response({
         "albumsCountAll": total_count,
         "albums": [
             {
@@ -233,7 +235,7 @@ def read_albums(
                 "updatedAt": db_album.updated_at,
             } for db_album in db_albums
         ]
-    }
+    })
 
 
 @router.get("/albums/{album_id}")
@@ -251,7 +253,7 @@ def read_album(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Specified album does not exist."
         )
-    return serialize_album(db_album, user_info)
+    return json_response(serialize_album(db_album, user_info))
 
 
 class CreateAlbumReqParams(BaseModel):
@@ -345,7 +347,7 @@ def create_album(
         played_at_dt
     )
 
-    return serialize_album(db_album, user_info)
+    return json_response(serialize_album(db_album, user_info))
 
 
 class CreateTempAlbumReqParams(BaseModel):
@@ -410,7 +412,7 @@ def create_temp_album(
     )
 
     # all green
-    return {
+    return json_response({
         "temporaryAlbumUuid": uuid_str,
         "hashMatchResult": db_album.id if db_album is not None else None,
         "pageMetaData": [
@@ -419,7 +421,7 @@ def create_temp_album(
                 "playerName": ocr_result.player_name,
             } for ocr_result in ocr_results
         ],
-    }
+    })
 
 
 class UpdateAlbumReqParams(BaseModel):
@@ -479,7 +481,7 @@ def update_album(
         params.tag_ids, params.page_meta_data
     )
 
-    return serialize_album(db_album, user_info)
+    return json_response(serialize_album(db_album, user_info))
 
 
 @router.delete("/albums/{album_id}")
@@ -499,7 +501,7 @@ def delete_album(
     # conduct soft-delete
     crud.soft_delete_album(db, album_id)
 
-    return {}
+    return json_response({})
 
 
 @router.post("/albums/{album_id}/dlcount")
@@ -518,4 +520,4 @@ def increment_album_dlcount(
     # increment dl_count
     db_album = crud.increment_album_dlcount(db, album_id)
 
-    return serialize_album(db_album, user_info)
+    return json_response(serialize_album(db_album, user_info))
