@@ -342,6 +342,16 @@ def get_temp_album(db: Session, uuid: str):
         ) \
         .first()
 
+def get_expired_temp_albums(db: Session, expiration_secs: int):
+    expiration_bound = datetime.datetime.now().astimezone() \
+                        - datetime.timedelta(seconds=expiration_secs)
+    return db.query(models.TempAlbum) \
+        .filter(
+            models.TempAlbum.deleted_at == None,
+            models.TempAlbum.created_at <= expiration_bound
+        ) \
+        .all()
+
 def create_temp_album(db: Session, temp_album: schemas.TempAlbumWrite):
     db_temp_album = models.TempAlbum(
         uuid=temp_album.uuid,
@@ -352,6 +362,16 @@ def create_temp_album(db: Session, temp_album: schemas.TempAlbumWrite):
     db.commit()
     db.refresh(db_temp_album)
     return db_temp_album
+
+def soft_delete_temp_album(db: Session, uuid: str):
+    db.query(models.TempAlbum) \
+        .filter(models.TempAlbum.uuid == uuid) \
+        .update({
+            models.TempAlbum.deleted_at: datetime.datetime.now() \
+                                            .astimezone()
+        })
+    
+    db.commit()
 
 
 # ----------------------------------------------------------------
