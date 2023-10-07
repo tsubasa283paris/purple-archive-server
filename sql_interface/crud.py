@@ -2,6 +2,7 @@ import datetime
 from dataclasses import dataclass
 from typing import Any, Dict, List, Tuple, Union
 
+from sqlalchemy import text, func
 from sqlalchemy.orm import Session
 
 from . import models, schemas
@@ -84,12 +85,27 @@ def get_album(db: Session, id: int, pv_increment: bool = False):
         db.commit()
     return db_album
 
-def get_albums(db: Session, offset: int = 0, limit: int = 100):
-    return db.query(models.Album) \
+GET_ALBUMS_ORDER_BY_PAT = 0 # order by playedAt
+GET_ALBUMS_ORDER_BY_PVC = 1 # order by pvCount
+GET_ALBUMS_ORDER_BY_DLC = 2 # order by downloadCount
+GET_ALBUMS_ORDER_BY_BMC = 3 # order by bookmarkCount
+GET_ALBUMS_ORDER_BY_PGC = 4 # order by pageCount
+
+GET_ALBUMS_ORDER_ASC = 0 # order ascending
+GET_ALBUMS_ORDER_DESC = 1 # order descending
+
+@dataclass
+class GetAlbums:
+    albums: List[models.Album]
+    albums_count: int
+
+def get_albums(
+    db: Session
+):
+    db_albums = db.query(models.Album) \
         .filter(models.Album.deleted_at == None) \
-        .offset(offset) \
-        .limit(limit) \
         .all()
+    return GetAlbums(db_albums, len(db_albums))
 
 def get_album_by_hash(db: Session, hash_str: str):
     return db.query(models.Album) \
