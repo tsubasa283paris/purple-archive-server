@@ -2,6 +2,7 @@ from fastapi import Depends, APIRouter, HTTPException, status
 from sqlalchemy.orm import Session
 
 from auth.auth import UserInfo
+from routers.json_response import json_response
 from sql_interface import crud, schemas
 from sql_interface.database import get_db
 
@@ -27,22 +28,22 @@ def read_users(
             "updatedAt": db_user.updated_at,
         })
     users.sort(key=lambda x: x["id"])
-    return {
+    return json_response({
         "usersCountTotal": get_users_result.users_count,
         "users": users,
-    }
+    })
 
 
 @router.get("/users/me")
 def read_user_me(
     user_info: UserInfo,
 ):
-    return {
+    return json_response({
         "id": user_info.id,
         "displayName": user_info.display_name,
         "createdAt": user_info.created_at,
         "updatedAt": user_info.updated_at,
-    }
+    })
 
 
 @router.get("/users/{user_id}")
@@ -57,12 +58,12 @@ def read_user(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Specified user does not exist."
         )
-    return {
+    return json_response({
         "id": db_user.id,
         "displayName": db_user.display_name,
         "createdAt": db_user.created_at,
         "updatedAt": db_user.updated_at,
-    }
+    })
 
 
 @router.post("/users")
@@ -79,9 +80,9 @@ def create_user(
         )
     created_user = crud.create_user(db=db, user=user)
 
-    return {
+    return json_response({
         "id": created_user.id,
         "displayName": created_user.display_name,
         "createdAt": created_user.created_at,
         "updatedAt": created_user.updated_at,
-    }
+    })
