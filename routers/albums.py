@@ -64,7 +64,11 @@ def temp_to_storage_path(temp_path: str) -> str:
     return temp_path.replace(TEMP_DIR_NAME, STORAGE_DIR_NAME)
 
 
-def serialize_album(album: models.Album) -> Dict:
+def serialize_album(album: models.Album, user: models.User) -> Dict:
+    is_bookmarked_map: Dict[int, bool] = {}
+    for bookmark_album in user.bookmark_albums:
+        is_bookmarked_map[bookmark_album.id] = True
+    
     sorted_tags = sorted(album.tags, key=lambda x: x.id)
     sorted_pages = sorted(album.pages, key=lambda x: x.index)
     return {
@@ -75,6 +79,7 @@ def serialize_album(album: models.Album) -> Dict:
         "downloadCount": album.download_count,
         "bookmarkCount": len(album.bookmark_users),
         "pageCount": len(album.pages),
+        "isBookmarked": is_bookmarked_map.get(album.id) is not None,
         "playedAt": album.played_at,
         "contributorUserId": album.contributor_user_id,
         "gamemodeId": album.gamemode_id,
@@ -246,7 +251,7 @@ def read_album(
             status_code=status.HTTP_404_NOT_FOUND,
             detail="Specified album does not exist."
         )
-    return serialize_album(db_album)
+    return serialize_album(db_album, user_info)
 
 
 class CreateAlbumReqParams(BaseModel):
@@ -340,7 +345,7 @@ def create_album(
         played_at_dt
     )
 
-    return serialize_album(db_album)
+    return serialize_album(db_album, user_info)
 
 
 class CreateTempAlbumReqParams(BaseModel):
@@ -474,7 +479,7 @@ def update_album(
         params.tag_ids, params.page_meta_data
     )
 
-    return serialize_album(db_album)
+    return serialize_album(db_album, user_info)
 
 
 @router.delete("/albums/{album_id}")
@@ -513,4 +518,4 @@ def increment_album_dlcount(
     # increment dl_count
     db_album = crud.increment_album_dlcount(db, album_id)
 
-    return serialize_album(db_album)
+    return serialize_album(db_album, user_info)
