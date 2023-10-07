@@ -4,7 +4,7 @@ import datetime
 import os
 import hashlib
 import uuid
-from typing import Dict, List
+from typing import Dict, List, Literal, Union
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
@@ -22,6 +22,36 @@ from storage.s3 import upload
 TEMP_DIR_NAME = "temp_albums"
 STORAGE_DIR_NAME = "albums/v1"
 
+GET_ALBUMS_ORDER_BY_PAT_STR = "playedAt"
+GET_ALBUMS_ORDER_BY_PVC_STR = "pvCount"
+GET_ALBUMS_ORDER_BY_DLC_STR = "downloadCount"
+GET_ALBUMS_ORDER_BY_BMC_STR = "bookmarkCount"
+GET_ALBUMS_ORDER_BY_PGC_STR = "pageCount"
+
+def ga_orderby_str_to_en(s: str):
+    if s == GET_ALBUMS_ORDER_BY_PAT_STR:
+        return crud.GET_ALBUMS_ORDER_BY_PAT
+    elif s == GET_ALBUMS_ORDER_BY_PVC_STR:
+        return crud.GET_ALBUMS_ORDER_BY_PVC
+    elif s == GET_ALBUMS_ORDER_BY_DLC_STR:
+        return crud.GET_ALBUMS_ORDER_BY_DLC
+    elif s == GET_ALBUMS_ORDER_BY_BMC_STR:
+        return crud.GET_ALBUMS_ORDER_BY_BMC
+    elif s == GET_ALBUMS_ORDER_BY_PGC_STR:
+        return crud.GET_ALBUMS_ORDER_BY_PGC
+    else:
+        raise ValueError()
+
+GET_ALBUMS_ORDER_ASC_STR = "asc"
+GET_ALBUMS_ORDER_DESC_STR = "desc"
+
+def ga_order_str_to_en(s: str):
+    if s == GET_ALBUMS_ORDER_ASC_STR:
+        return crud.GET_ALBUMS_ORDER_ASC
+    elif s == GET_ALBUMS_ORDER_DESC_STR:
+        return crud.GET_ALBUMS_ORDER_DESC
+    else:
+        raise ValueError()
 
 router = APIRouter()
 
@@ -68,22 +98,131 @@ def serialize_album(album: models.Album) -> Dict:
 @router.get("/albums")
 def read_albums(
     user_info: UserInfo,
+    partialDescription: Union[str, None] = None,
+    partialPlayerName: Union[str, None] = None,
+    playedFrom: Union[int, None] = None,
+    playedUntil: Union[int, None] = None,
+    gamemodeId: Union[int, None] = None,
+    partialTag: Union[str, None] = None,
+    myBookmark: Union[str, None] = None,
     offset: int = 0,
     limit: int = 100,
+    orderBy: str = GET_ALBUMS_ORDER_BY_PAT_STR,
+    order: str = GET_ALBUMS_ORDER_DESC_STR,
     db: Session = Depends(get_db)
 ):
-    # TODO complicated query parameters
-    db_albums = crud.get_albums(db, offset=offset, limit=limit)
+    # validate orderBy and order strings
+    try:
+        order_by_en = ga_orderby_str_to_en(orderBy)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Query parameter orderBy is invalid.",
+        )
+    try:
+        order_en = ga_order_str_to_en(order)
+    except ValueError:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Query parameter order is invalid.",
+        )
+    
+    get_albums_result = crud.get_albums(db)
+
+    # filter
+    filtered_db_albums: List[models.Album] = []
+    for db_album in get_albums_result.albums:
+        matched = True
+        pages: List[models.Page] = db_album.pages
+        tags: List[models.Tag] = db_album.tags
+        bookmark_users: List[models.User] = db_album.bookmark_users
+
+        if partialDescription is not None:
+            pd_matched = False
+            for page in pages:
+                if partialDescription in page.description:
+                    pd_matched = True
+                    break
+            matched &= pd_matched
+
+        if partialPlayerName is not None:
+            pp_matched = False
+            for page in pages:
+                if partialPlayerName in page.player_name:
+                    pp_matched = True
+                    break
+            matched &= pp_matched
+
+        if playedFrom is not None:
+            played_from_dt = datetime.datetime \
+                                .fromtimestamp(playedFrom).astimezone()
+            matched &= db_album.played_at >= played_from_dt
+
+        if playedUntil is not None:
+            played_until_dt = datetime.datetime \
+                                .fromtimestamp(playedUntil).astimezone()
+            matched &= db_album.played_at <= played_until_dt
+
+        if gamemodeId is not None:
+            matched &= db_album.gamemode_id == gamemodeId
+        
+        if partialTag is not None:
+            pt_matched = False
+            for tag in tags:
+                if partialTag in tag.name:
+                    pt_matched = True
+                    break
+            matched &= pt_matched
+        
+        if myBookmark is not None and len(myBookmark):
+            # any string is treated as myBookmark=true
+            is_bookmarked = False
+            for bookmark_user in bookmark_users:
+                if bookmark_user.id == user_info.id:
+                    is_bookmarked = True
+                    break
+            matched &= is_bookmarked
+        
+        # finally, move it to filtered list when all conditions green
+        if matched:
+            filtered_db_albums.append(db_album)
+    
+    total_count = len(filtered_db_albums)
+
+    # sort, offset and limit
+    sort_key = lambda a: a.played_at
+    if order_by_en == crud.GET_ALBUMS_ORDER_BY_PVC:
+        sort_key = lambda a: a.pv_count
+    elif order_by_en == crud.GET_ALBUMS_ORDER_BY_DLC:
+        sort_key = lambda a: a.download_count
+    elif order_by_en == crud.GET_ALBUMS_ORDER_BY_BMC:
+        sort_key = lambda a: len(a.bookmark_users)
+    elif order_by_en == crud.GET_ALBUMS_ORDER_BY_PGC:
+        sort_key = lambda a: len(a.pages)
+    db_albums = sorted(
+        filtered_db_albums, 
+        key=sort_key,
+        reverse=(order_en == crud.GET_ALBUMS_ORDER_DESC)
+    )[offset : offset + limit]
+    
+    # create map of bookmarked or not by the user
+    is_bookmarked_map: Dict[int, bool] = {}
+    for bookmark_album in user_info.bookmark_albums:
+        is_bookmarked_map[bookmark_album.id] = True
+        
     return {
-        "albumsCountAll": len(db_albums),
+        "albumsCountAll": total_count,
         "albums": [
             {
                 "id": db_album.id,
                 "source": db_album.source,
+                "thumbSource": db_album.thumb_source,
                 "pvCount": db_album.pv_count,
                 "downloadCount": db_album.download_count,
                 "bookmarkCount": len(db_album.bookmark_users),
                 "pageCount": len(db_album.pages),
+                "isBookmarked": is_bookmarked_map.get(db_album.id) \
+                                    is not None,
                 "playedAt": db_album.played_at,
                 "createdAt": db_album.created_at,
                 "updatedAt": db_album.updated_at,
