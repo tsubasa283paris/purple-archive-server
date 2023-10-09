@@ -31,7 +31,7 @@ def read_gamemodes(
     gamemodes.sort(key=lambda x: x["id"])
     return json_response({
         "gamemodesCountAll": get_gamemode_result.gamemodes_count,
-        "users": gamemodes,
+        "gamemodes": gamemodes,
     })
 
 
