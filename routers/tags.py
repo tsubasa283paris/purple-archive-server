@@ -31,7 +31,7 @@ def read_tags(
     tags.sort(key=lambda x: x["id"])
     return json_response({
         "tagsCountAll": get_tag_result.tags_count,
-        "users": tags,
+        "tags": tags,
     })
 
 
