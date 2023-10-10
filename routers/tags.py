@@ -50,9 +50,13 @@ def create_tag(
 ):
     db_tag = crud.get_tag_by_name(db, params.name)
     if db_tag:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Specified name already exists."
+        # return existing tag info
+        return json_response(
+            {
+                "id": db_tag.id,
+                "name": db_tag.name,
+            },
+            status.HTTP_409_CONFLICT
         )
     created_tag = crud.create_tag(db, params.name)
 
