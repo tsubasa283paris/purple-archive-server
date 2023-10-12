@@ -1,8 +1,7 @@
-import datetime
-
 from sqlalchemy import Column, DateTime, ForeignKey, Integer, String, Table
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.declarative import declared_attr
+from sqlalchemy.sql import functions
 
 from .database import Base
 
@@ -17,7 +16,7 @@ class TimestampMixin(object):
     def created_at(cls):
         return Column(
             DateTime(True),
-            default=datetime.datetime.now(),
+            default=functions.now(),
             nullable=False
         )
     
@@ -25,8 +24,8 @@ class TimestampMixin(object):
     def updated_at(cls):
         return Column(
             DateTime(True),
-            default=datetime.datetime.now(),
-            onupdate=datetime.datetime.now(),
+            default=functions.now(),
+            onupdate=functions.now(),
             nullable=False
         )
     
