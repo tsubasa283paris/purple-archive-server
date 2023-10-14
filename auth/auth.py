@@ -11,7 +11,7 @@ from sql_interface.database import get_db
 from auth.jwt import encode_access_token, decode_access_token
 
 
-ACCESS_TOKEN_EXPIRE_MINUTES = 30
+ACCESS_TOKEN_EXPIRE_MINUTES = 60 * 24 * 7 # 1 week
 
 
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth")
