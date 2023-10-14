@@ -100,12 +100,121 @@ class GetAlbums:
     albums_count: int
 
 def get_albums(
-    db: Session
+    db: Session, order_by: int, order: int,
+    offset: int, limit: int,
+    partial_desc: Union[str, None], partial_pname: Union[str, None],
+    played_from: Union[int, None],
+    played_until: Union[int, None],
+    gamemode_id: Union[int, None], partial_tag: Union[str, None],
+    my_bookmark: bool, user_id: str
 ):
-    db_albums = db.query(models.Album) \
-        .filter(models.Album.deleted_at == None) \
+    # collect number of pages and bookmarks by subqueries
+    subq_1 = (db.query(
+        models.Album.id.label("album_id_np"),
+        func.count(models.Page.id).label("num_pages")
+    ) \
+        .outerjoin(models.Page) \
+        .group_by("album_id_np")) \
+        .subquery("subq_1")
+    
+    subq_2 = (db.query(
+        models.Album.id.label("album_id_nb"),
+        func.count(models.bookmark_table.c.user_id).label("num_bookmarks")
+    ) \
+        .outerjoin(models.bookmark_table) \
+        .group_by("album_id_nb")) \
+        .subquery("subq_2")
+
+    query = db.query(
+        models.Album,
+        subq_1.c.num_pages,
+        subq_2.c.num_bookmarks,
+    ) \
+        .join(subq_1, models.Album.id == subq_1.c.album_id_np) \
+        .join(subq_2, models.Album.id == subq_2.c.album_id_nb) \
+        .group_by(models.Album, subq_1.c.num_pages, subq_2.c.num_bookmarks) \
+        .filter(models.Album.deleted_at == None)
+    
+    # conduct filters
+    if partial_desc is not None:
+        partial_desc = partial_desc.replace("%", "/%")
+        query = query.filter(
+            models.Album.pages.any(
+                models.Page.description.like("%" + partial_desc + "%",
+                                             escape="/")
+            )
+        )
+    if partial_pname is not None:
+        partial_pname = partial_pname.replace("%", "/%")
+        query = query.filter(
+            models.Album.pages.any(
+                models.Page.player_name.like("%" + partial_pname + "%")
+            )
+        )
+    if played_from is not None:
+        query = query.filter(
+            models.Album.played_at \
+                >= datetime.datetime.fromtimestamp(played_from).astimezone(),
+        )
+    if played_until is not None:
+        query = query.filter(
+            models.Album.played_at \
+                <= datetime.datetime.fromtimestamp(played_until).astimezone(),
+        )
+    if gamemode_id is not None:
+        query = query.filter(models.Album.gamemode_id == gamemode_id)
+    if partial_tag is not None:
+        partial_tag = partial_tag.replace("%", "/%")
+        query = query.filter(
+            models.Album.tags.any(
+                models.Tag.name.like("%" + partial_tag + "%")
+            )
+        )
+    if my_bookmark:
+        query = query.filter(
+            models.Album.bookmark_users.any(
+                models.User.id == user_id
+            )
+        )
+    
+    # store total counts
+    total_count = query.count()
+
+    # order by
+    query = query.order_by(models.Album.played_at.desc())
+    if order_by == GET_ALBUMS_ORDER_BY_PAT:
+        if order == GET_ALBUMS_ORDER_ASC:
+            query = query.order_by(models.Album.played_at.asc())
+    elif order_by == GET_ALBUMS_ORDER_BY_PVC:
+        if order == GET_ALBUMS_ORDER_ASC:
+            query = query.order_by(models.Album.pv_count.asc())
+        else:
+            query = query.order_by(models.Album.pv_count.desc())
+    elif order_by == GET_ALBUMS_ORDER_BY_DLC:
+        if order == GET_ALBUMS_ORDER_ASC:
+            query = query.order_by(models.Album.download_count.asc())
+        else:
+            query = query.order_by(models.Album.download_count.desc())
+    elif order_by == GET_ALBUMS_ORDER_BY_BMC:
+        if order == GET_ALBUMS_ORDER_ASC:
+            query = query.order_by(subq_2.c.num_bookmarks.asc())
+        else:
+            query = query.order_by(subq_2.c.num_bookmarks.desc())
+    elif order_by == GET_ALBUMS_ORDER_BY_PGC:
+        if order == GET_ALBUMS_ORDER_ASC:
+            query = query.order_by(subq_1.c.num_pages.asc())
+        else:
+            query = query.order_by(subq_1.c.num_pages.desc())
+
+    db_albums = query \
+        .offset(offset) \
+        .limit(limit) \
         .all()
-    return GetAlbums(db_albums, len(db_albums))
+
+    return GetAlbums(
+        [a.tuple()[0] for a in db_albums],
+        total_count
+    )
 
 def get_album_by_hash(db: Session, hash_str: str):
     return db.query(models.Album) \
