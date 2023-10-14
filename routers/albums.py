@@ -143,7 +143,9 @@ def read_albums(
             detail="Query parameter order is invalid.",
         )
     
+    print("SELECT albums started:", datetime.datetime.now().astimezone().isoformat())
     get_albums_result = crud.get_albums(db)
+    print("SELECT albums finished:", datetime.datetime.now().astimezone().isoformat())
 
     # filter
     filtered_db_albums: List[models.Album] = []
