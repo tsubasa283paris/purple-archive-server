@@ -6,7 +6,9 @@ import hashlib
 import uuid
 from typing import Dict, List, Union
 
-from fastapi import APIRouter, Depends, HTTPException, status
+import requests
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status
+from fastapi.responses import FileResponse
 from pydantic import BaseModel
 from pydantic.alias_generators import to_camel
 from sqlalchemy.orm import Session
@@ -53,6 +55,13 @@ def ga_order_str_to_en(s: str):
         return crud.GET_ALBUMS_ORDER_DESC
     else:
         raise ValueError()
+    
+def date_to_album_filename(d: datetime.datetime):
+    # example: album_2023-10-08_00-35-34.gif
+    return "album_" + d.strftime("%Y-%m-%d_%H-%M-%S") + ".gif"
+
+def cleanup_downloaded_album_file(path: str):
+    os.remove(path)
 
 
 router = APIRouter()
@@ -254,6 +263,38 @@ def read_album(
             detail="Specified album does not exist."
         )
     return json_response(serialize_album(db_album, user_info))
+
+
+@router.get("/albums/{album_id}/raw")
+def read_album_data(
+    user_info: UserInfo,
+    album_id: int,
+    db: Session = Depends(get_db)
+):
+    db_album = crud.get_album(
+        db, id=album_id, pv_increment=False
+    )
+    if db_album is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Specified album does not exist."
+        )
+    
+    # download to local
+    r = requests.get(db_album.source)
+    local_path = os.path.basename(db_album.source)
+    with open(local_path, "wb") as f:
+        f.write(r.content)
+
+    # delete local file later
+    bg = BackgroundTasks()
+    bg.add_task(cleanup_downloaded_album_file, local_path)
+
+    return FileResponse(
+        path=local_path,
+        filename=date_to_album_filename(db_album.played_at),
+        background=bg
+    )
 
 
 class CreateAlbumReqParams(BaseModel):
