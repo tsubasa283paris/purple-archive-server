@@ -143,85 +143,22 @@ def read_albums(
             detail="Query parameter order is invalid.",
         )
     
+    filter_my_bookmark = myBookmark is not None and (len(myBookmark) > 0)
+    
     print("SELECT albums started:", datetime.datetime.now().astimezone().isoformat())
-    get_albums_result = crud.get_albums(db)
+    get_albums_result = crud.get_albums(
+        db, order_by_en, order_en, offset, limit,
+        partialDescription,
+        partialPlayerName, 
+        playedFrom,
+        playedUntil,
+        gamemodeId,
+        partialTag,
+        filter_my_bookmark,
+        user_info.id
+    )
     print("SELECT albums finished:", datetime.datetime.now().astimezone().isoformat())
 
-    # filter
-    filtered_db_albums: List[models.Album] = []
-    for db_album in get_albums_result.albums:
-        matched = True
-        pages: List[models.Page] = db_album.pages
-        tags: List[models.Tag] = db_album.tags
-        bookmark_users: List[models.User] = db_album.bookmark_users
-
-        if partialDescription is not None:
-            pd_matched = False
-            for page in pages:
-                if partialDescription in page.description:
-                    pd_matched = True
-                    break
-            matched &= pd_matched
-
-        if partialPlayerName is not None:
-            pp_matched = False
-            for page in pages:
-                if partialPlayerName in page.player_name:
-                    pp_matched = True
-                    break
-            matched &= pp_matched
-
-        if playedFrom is not None:
-            played_from_dt = datetime.datetime \
-                                .fromtimestamp(playedFrom).astimezone()
-            matched &= db_album.played_at >= played_from_dt
-
-        if playedUntil is not None:
-            played_until_dt = datetime.datetime \
-                                .fromtimestamp(playedUntil).astimezone()
-            matched &= db_album.played_at <= played_until_dt
-
-        if gamemodeId is not None:
-            matched &= db_album.gamemode_id == gamemodeId
-        
-        if partialTag is not None:
-            pt_matched = False
-            for tag in tags:
-                if partialTag in tag.name:
-                    pt_matched = True
-                    break
-            matched &= pt_matched
-        
-        if myBookmark is not None and len(myBookmark):
-            # any string is treated as myBookmark=true
-            is_bookmarked = False
-            for bookmark_user in bookmark_users:
-                if bookmark_user.id == user_info.id:
-                    is_bookmarked = True
-                    break
-            matched &= is_bookmarked
-        
-        # finally, move it to filtered list when all conditions green
-        if matched:
-            filtered_db_albums.append(db_album)
-    
-    total_count = len(filtered_db_albums)
-
-    # sort, offset and limit
-    sort_key = lambda a: a.played_at
-    if order_by_en == crud.GET_ALBUMS_ORDER_BY_PVC:
-        sort_key = lambda a: a.pv_count
-    elif order_by_en == crud.GET_ALBUMS_ORDER_BY_DLC:
-        sort_key = lambda a: a.download_count
-    elif order_by_en == crud.GET_ALBUMS_ORDER_BY_BMC:
-        sort_key = lambda a: len(a.bookmark_users)
-    elif order_by_en == crud.GET_ALBUMS_ORDER_BY_PGC:
-        sort_key = lambda a: len(a.pages)
-    db_albums = sorted(
-        filtered_db_albums, 
-        key=sort_key,
-        reverse=(order_en == crud.GET_ALBUMS_ORDER_DESC)
-    )[offset : offset + limit]
     
     # create map of bookmarked or not by the user
     is_bookmarked_map: Dict[int, bool] = {}
@@ -229,7 +166,7 @@ def read_albums(
         is_bookmarked_map[bookmark_album.id] = True
         
     return json_response({
-        "albumsCountAll": total_count,
+        "albumsCountAll": get_albums_result.albums_count,
         "albums": [
             {
                 "id": db_album.id,
@@ -244,7 +181,7 @@ def read_albums(
                 "playedAt": db_album.played_at,
                 "createdAt": db_album.created_at,
                 "updatedAt": db_album.updated_at,
-            } for db_album in db_albums
+            } for db_album in get_albums_result.albums
         ]
     })
 
