@@ -181,7 +181,6 @@ def get_albums(
     total_count = query.count()
 
     # order by
-    query = query.order_by(models.Album.played_at.desc())
     if order_by == GET_ALBUMS_ORDER_BY_PAT:
         if order == GET_ALBUMS_ORDER_ASC:
             query = query.order_by(models.Album.played_at.asc())
@@ -205,6 +204,9 @@ def get_albums(
             query = query.order_by(subq_1.c.num_pages.asc())
         else:
             query = query.order_by(subq_1.c.num_pages.desc())
+    
+    # sub order
+    query = query.order_by(models.Album.played_at.desc())
 
     db_albums = query \
         .offset(offset) \
