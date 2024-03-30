@@ -15,6 +15,7 @@
       AWS_ACCESS_KEY_ID='<IAMユーザのアクセスキーID>'
       AWS_SECRET_ACCESS_KEY='<IAMユーザのシークレットアクセスキー>'
       AWS_DEFAULT_REGION='<S3バケットを配置したリージョン>'
+      JWT_KEY='<JWTの署名に用いる秘密鍵文字列>'
       ```
 
 1. Google Cloud Vision API用の認証情報ファイルを `google_api_credentials.json` として当リポジトリのルートディレクトリに配置する。  
